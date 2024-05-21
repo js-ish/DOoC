@@ -50,16 +50,42 @@ class MutSmiXAttention(MutSmi):
     def __init__(
         self,
         d_model: int,
+        nhead: int = 2,
+        num_layers: int = 2,
         gene_conf: nets.GeneGNNConfig = nets.GeneGNN.DEFAULT_CONFIG,
         smiles_conf: AbsPosEncoderDecoderConfig = AdaMR.CONFIG_BASE,
     ) -> None:
         super().__init__(gene_conf, smiles_conf)
         self.d_model = d_model
+        d_hidden = d_model // 2
+        self.nhead = nhead
+        self.num_layers = num_layers
+        self.gene_fc = nn.Linear(self.gene_conf.num_hiddens_genotype, self.d_model)
+        decoder_layer = nn.TransformerDecoderLayer(self.d_model,
+                                                   self.nhead)
+        self.decoder = nn.TransformerDecoder(decoder_layer,
+                                             num_layers=self.num_layers)
+        self.reg = nn.Sequential(
+            nn.Linear(self.d_model, d_hidden),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(d_hidden, 1),
+        )
 
     def forward(
         self, smiles_src: torch.Tensor, smiles_tgt: torch.Tensor, gene_src: torch.Tensor
     ) -> torch.Tensor:
-        pass
+        is_batched = smiles_src.dim() == 2
+
+        smiles_out = self.smiles_encoder.forward_feature(smiles_src, smiles_tgt)
+        gene_out = self.gene_fc(self.gene_encoder(gene_src))
+        feat = None
+        if is_batched:
+            feat = self.decoder(smiles_out, gene_out)
+        else:
+            feat = self.decoder(smiles_out.unsqueeze(0), gene_out)
+
+        return self.reg(feat)
 
 
 class MutSmiFullConnection(MutSmi):

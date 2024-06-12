@@ -83,6 +83,8 @@ class _MutSmiReg:
 
 
 class _MutSmisRank:
+    def __init__(self, cmp_smis_func) -> None:
+        self.cmp_smis_func = cmp_smis_func
 
     def __call__(self, mut: typing.Sequence[int], smis: typing.Sequence[str]) -> typing.Sequence[str]:
         return sorted(smis, key=cmp_to_key(self.cmp_smis_func(mut)))
@@ -103,5 +105,5 @@ class MutSmiReg(_MutSmi, _MutSmiReg):
 
 class MutSmisRank(_MutSmis, _MutSmisRank):
     def __call__(self, mut: typing.Sequence[int], smis: typing.Sequence[str]) -> typing.Sequence[str]:
-        _mut_smis_rank:_MutSmisRank = _MutSmisRank()
+        _mut_smis_rank:_MutSmisRank = _MutSmisRank(super(MutSmisRank, self).cmp_smis_func)
         return _mut_smis_rank(mut=mut, smis=smis)

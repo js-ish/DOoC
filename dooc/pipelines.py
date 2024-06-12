@@ -102,4 +102,6 @@ class MutSmiReg(_MutSmi, _MutSmiReg):
 
 
 class MutSmisRank(_MutSmis, _MutSmisRank):
-    pass
+    def __call__(self, mut: typing.Sequence[int], smis: typing.Sequence[str]) -> typing.Sequence[str]:
+        _mut_smis_rank:_MutSmisRank = _MutSmisRank()
+        return _mut_smis_rank(mut=mut, smis=smis)

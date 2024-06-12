@@ -66,7 +66,7 @@ class _MutSmis(_MutSmiBase):
 
         def cmp(smi1, smi2):
             smis = [smi1, smi2]
-            query = '-'.join(smis)
+            query = tuple(smis)
             if query in cmped:
                 return cmped[query]
             smi_tgt = self._smi_args(smis)

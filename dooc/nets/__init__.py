@@ -3,6 +3,7 @@ from torch import nn
 from moltx.models import AdaMR, AdaMR2
 from dooc.nets.drugcell import Drugcell
 from dooc.nets.prmo import PrmoEncoder
+from dooc.nets.cnnmut import CNNMut
 
 
 """
@@ -269,3 +270,59 @@ class PrmoAdamr2MultiOmicsSmisXattn(_PrmoAdamr2):
         multi_omics_out = self._forward_multi_omics(mut_x, rna_x, pathway_x)  # [b, 1, dmodel]
         smi_out = self._forward_smi(smi_tgt)
         return self.cross_attn(smi_out, multi_omics_out)  # [b, n, dmodel]
+
+
+class _CNNMutAdamr2(nn.Module):
+    def __init__(self, mut_conf, smi_conf) -> None:
+        super().__init__()
+        self.mut_conf = mut_conf
+        self.smi_conf = smi_conf
+
+        self.mut_encoder = CNNMut(mut_conf)
+        self.smi_encoder = AdaMR2(smi_conf)
+
+    def load_ckpt(self, *ckpt_files: str) -> None:
+        self.load_state_dict(
+            torch.load(ckpt_files[0], map_location=torch.device("cpu"))
+        )
+
+    def load_pretrained_ckpt(self, smi_ckpt: str, freeze_smi: bool = False) -> None:
+        self.smi_encoder.load_ckpt(smi_ckpt)
+        if freeze_smi:
+            self.smi_encoder.requires_grad_(False)
+
+
+class CNNMutAdamr2MutSmisXattn(_CNNMutAdamr2):
+    def __init__(self, mut_conf, smi_conf, nhead: int = 2, num_layers: int = 2) -> None:
+        super().__init__(mut_conf, smi_conf)
+        d_model = smi_conf.d_model
+        layer = nn.TransformerDecoderLayer(d_model, nhead, batch_first=True)
+        self.cross_attn = nn.TransformerDecoder(layer, num_layers)
+
+    def _forward_mut(self, mut_x: torch.Tensor) -> torch.Tensor:
+        """
+        mut_x: [b, mut_seqlen]
+        out: [b, 1, dmodel]
+        """
+        mut_x = mut_x.unsqueeze(-2)
+        return self.mut_encoder(mut_x)
+
+    def _forward_smi(self, smi_tgt: torch.Tensor) -> torch.Tensor:
+        """
+        smi_tgt: [b, n, smi_seqlen]
+        out: [b, n, dmodel]
+        """
+        batched = smi_tgt.dim() == 3
+        if batched:
+            n = smi_tgt.shape[1]
+            smi_tgt = smi_tgt.reshape(-1, smi_tgt.shape[-1])
+            out = self.smi_encoder.forward_feature(smi_tgt)
+            return out.reshape(-1, n, out.shape[-1])
+        return self.smi_encoder.forward_feature(smi_tgt)
+
+    def forward(
+        self, mut_x: torch.Tensor, smi_tgt: torch.Tensor
+    ) -> torch.Tensor:
+        mut_out = self._forward_mut(mut_x)  # [b, 1, dmodel]
+        smi_out = self._forward_smi(smi_tgt)
+        return self.cross_attn(smi_out, mut_out)  # [b, n, dmodel]

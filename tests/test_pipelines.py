@@ -34,6 +34,13 @@ def test_MutSmisRank(smi_tkz):
     assert len(out) == 3
     assert out[1] == "CC[N+](C)(C)Cc1ccccc1Br"
 
+    model = models.MutSmisRankV2()
+    pipeline = pipelines.MutSmisRank(smi_tokenizer=smi_tkz, model=model)
+    out = pipeline(mutation, smiles)
+    assert isinstance(out, list)
+    assert len(out) == 3
+    assert out[1] == "CC[N+](C)(C)Cc1ccccc1Br"
+
 
 def test_MultiOmicsSmisRank(smi_tkz):
     mutation = [random.choice([1, 0]) for _ in range(3008)]

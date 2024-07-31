@@ -153,7 +153,7 @@ tokenizer = tkz.MoltxTokenizer.from_pretrain(
     )
 model = models.MutSmisRank()
 model.load_ckpt('/path/to/mutsmirank.ckpt')
-pipeline = pipelines.MutSmiXAttention(smi_tokenizer=tokenizer, model=model)
+pipeline = pipelines.MutSmisRank(smi_tokenizer=tokenizer, model=model)
 mutations = [random.choice([0, 1]) for _ in range(3008)]
 smiles = ["c1cccc1c", "CC[N+](C)(C)Cc1ccccc1Br", "CN(Cc1oc2ccccc2c1C)C(=O)\C=C\c1cnc2NC(=O)CCc2c1"]
 predict = pipeline(mut=mutations, smis=smiles) # e.g. ["CN(Cc1oc2ccccc2c1C)C(=O)\C=C\c1cnc2NC(=O)CCc2c1", "CC[N+](C)(C)Cc1ccccc1Br", "c1cccc1c"]

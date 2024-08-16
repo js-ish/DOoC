@@ -17,6 +17,10 @@ def drugcell_conf():
     return nets.Drugcell.DEFAULT_CONFIG
 
 @pytest.fixture
+def cnnmut_conf():
+    return nets.CNNMut.DEFAULT_CONFIG
+
+@pytest.fixture
 def prmo_conf():
     return nets.PrmoEncoder.DEFAULT_CONFIG
 
@@ -118,6 +122,20 @@ def test_DrugcellAdamr2MutSmis(adamr2_conf, drugcell_conf, drugcell_adamr2_mut_s
     assert out.size(0) == label.size(0) and out.size(1) == label.size(1)
 
     model = nets.DrugcellAdamr2MutSmisXattn(drugcell_conf, adamr2_conf)
+    out = model(*drugcell_adamr2_mut_smis_ds[:-1])
+    assert out.dim() == 3
+    assert out.size(0) == label.size(0) and out.size(1) == label.size(1)
+
+
+def test_CNNMutAdamr2MutSmis(adamr2_conf, cnnmut_conf, drugcell_adamr2_mut_smis_ds):
+    label = drugcell_adamr2_mut_smis_ds[-1]
+
+    model = nets.CNNMutAdamr2MutSmisXattn(cnnmut_conf, adamr2_conf)
+    out = model(*drugcell_adamr2_mut_smis_ds[:-1])
+    assert out.dim() == 3
+    assert out.size(0) == label.size(0) and out.size(1) == label.size(1)
+
+    model = nets.CNNMutAdamr2MutSmisXattn(cnnmut_conf, adamr2_conf)
     out = model(*drugcell_adamr2_mut_smis_ds[:-1])
     assert out.dim() == 3
     assert out.size(0) == label.size(0) and out.size(1) == label.size(1)
